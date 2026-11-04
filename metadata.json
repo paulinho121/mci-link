@@ -1,0 +1,6 @@
+{
+  "name": "Cine Light OS",
+  "description": "Studio-grade cinema lighting control operating system for gaffers, DIT carts, and field monitors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

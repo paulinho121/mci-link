@@ -1,0 +1,214 @@
+---
+name: Cine Light OS
+colors:
+  surface: '#121316'
+  surface-dim: '#121316'
+  surface-bright: '#38393c'
+  surface-container-lowest: '#0d0e11'
+  surface-container-low: '#1b1b1f'
+  surface-container: '#1f1f23'
+  surface-container-high: '#292a2d'
+  surface-container-highest: '#343538'
+  on-surface: '#e3e2e6'
+  on-surface-variant: '#d5c4b4'
+  inverse-surface: '#e3e2e6'
+  inverse-on-surface: '#2f3034'
+  outline: '#9d8e80'
+  outline-variant: '#504539'
+  surface-tint: '#f9bb72'
+  primary: '#ffc684'
+  on-primary: '#472a00'
+  primary-container: '#e5a962'
+  on-primary-container: '#653d00'
+  inverse-primary: '#835414'
+  secondary: '#c3c6d0'
+  on-secondary: '#2c3138'
+  secondary-container: '#42474f'
+  on-secondary-container: '#b1b5be'
+  tertiary: '#71e7a5'
+  on-tertiary: '#003920'
+  tertiary-container: '#53ca8b'
+  on-tertiary-container: '#005130'
+  error: '#ffb4ab'
+  on-error: '#690005'
+  error-container: '#93000a'
+  on-error-container: '#ffdad6'
+  primary-fixed: '#ffddb9'
+  primary-fixed-dim: '#f9bb72'
+  on-primary-fixed: '#2b1700'
+  on-primary-fixed-variant: '#663e00'
+  secondary-fixed: '#dfe2ec'
+  secondary-fixed-dim: '#c3c6d0'
+  on-secondary-fixed: '#171c23'
+  on-secondary-fixed-variant: '#42474f'
+  tertiary-fixed: '#84f9b6'
+  tertiary-fixed-dim: '#67dc9c'
+  on-tertiary-fixed: '#002110'
+  on-tertiary-fixed-variant: '#005230'
+  background: '#121316'
+  on-background: '#e3e2e6'
+  surface-variant: '#343538'
+typography:
+  headline-xl:
+    fontFamily: Geist
+    fontSize: 32px
+    fontWeight: '600'
+    lineHeight: 38px
+    letterSpacing: -0.02em
+  headline-xl-mobile:
+    fontFamily: Geist
+    fontSize: 24px
+    fontWeight: '600'
+    lineHeight: 30px
+    letterSpacing: -0.01em
+  headline-lg:
+    fontFamily: Geist
+    fontSize: 22px
+    fontWeight: '600'
+    lineHeight: 28px
+    letterSpacing: -0.01em
+  headline-sm:
+    fontFamily: Geist
+    fontSize: 16px
+    fontWeight: '600'
+    lineHeight: 22px
+    letterSpacing: 0em
+  body-lg:
+    fontFamily: Space Mono
+    fontSize: 14px
+    fontWeight: '400'
+    lineHeight: 22px
+    letterSpacing: -0.01em
+  body-sm:
+    fontFamily: Space Mono
+    fontSize: 12px
+    fontWeight: '400'
+    lineHeight: 18px
+    letterSpacing: 0em
+  label-lg:
+    fontFamily: Space Mono
+    fontSize: 13px
+    fontWeight: '700'
+    lineHeight: 16px
+    letterSpacing: 0.06em
+  label-sm:
+    fontFamily: Space Mono
+    fontSize: 10px
+    fontWeight: '700'
+    lineHeight: 14px
+    letterSpacing: 0.1em
+  metric-display:
+    fontFamily: Space Mono
+    fontSize: 28px
+    fontWeight: '700'
+    lineHeight: 32px
+    letterSpacing: -0.04em
+  metric-display-mobile:
+    fontFamily: Space Mono
+    fontSize: 20px
+    fontWeight: '700'
+    lineHeight: 24px
+    letterSpacing: -0.03em
+spacing:
+  gutter: 0.75rem
+  margin: 1rem
+  space-xs: 0.25rem
+  space-sm: 0.5rem
+  space-md: 0.75rem
+  space-lg: 1.25rem
+  space-xl: 1.75rem
+---
+
+## Brand & Style
+
+This design system establishes a high-performance, studio-grade operating environment engineered specifically for field monitors, DIT carts, and gaffer control tablets operating on active, low-light film sets. Drawing aesthetic and mechanical cues from cinema-grade camera firmware (ARRI Look OS, RED Kam+R, Teradek), the system treats interface space as an ultra-precise, zero-tolerance control console.
+
+The style unites brutalist precision with tactile hardware calibration:
+- **Sharp Geometry:** No rounded corners, zero soft pills. Pure architectural edges mirror machined aluminum chassis, matte display frames, and 19-inch rack units.
+- **Instrument-Grade Legibility:** High contrast dark field designed to preserve dark adaptation on unlit stages while preventing light spill onto actors and practicals.
+- **Parametric Clarity:** Visual weight prioritizes realtime metrics—Kelvin ratings, foot-candles, DMX universes, flicker frequency, and wireless signal integrity—over decorative flourish.
+
+## Colors
+
+The palette simulates a calibrated hardware monitor with targeted optical accents:
+
+- **Primary Accent (`#E5A962` / Tungsten Gold):** Calibrated amber derived from 3200K tungsten filaments. Used exclusively for active control states, active slider fills, key value highlights, and primary physical actuation indicators.
+- **Surfaces & Neutrals:**
+  - `Canvas / Chassis Base`: `#101114` (Deep non-reflective carbon)
+  - `Sub-surface / Bays`: `#191B20` (Dark graphite matte)
+  - `Modules & Cards`: `#22252B` (Anodized surface layer)
+  - `Borders & Divisions`: `#343840` (Precision milled hairline rule)
+- **Text & Readouts:**
+  - `Primary Text`: `#F3F0EA` (Soft warm diffuse white, non-glare)
+  - `Secondary / Metadata`: `#A4A8B1` (Laser-etched titanium tone)
+- **Hardware Telemetry & Status:**
+  - `Operational / Linked`: `#52C98A` (Wireless lock, clean CRMX sync, Art-Net good)
+  - `Caution / Warning`: `#E6B45F` (Thermal throttle, packet loss, generator limit)
+  - `Critical / Blackout`: `#E56D6D` (DMX disconnect, fixture overheat, cut signal)
+
+## Typography
+
+Typography functions as visual instrumentation. High-density data requires strict distinction between administrative nomenclature and rapid-scanning numerical readouts.
+
+- **Geist (Headlines & Fixture Labels):** Provides neutral, low-distortion headings for fixture groups, rig zones, cue lists, and global system states.
+- **Space Mono (Body, Telemetry & Physical Metrics):** Used for all numerical metrics, Kelvin temperatures (e.g., `5600K`), intensity values (`94.2%`), DMX slots (`U1:512`), frame rates, and hardware flags. Monospaced character widths eliminate layout jitter during high-speed real-time slider manipulation and network ping updates.
+- **Case Rule:** Labels, channel tags, unit designations, and protocol modes must be set in uppercase (`ALL CAPS`) with tracking expanded to `0.06em` - `0.1em` for instantaneous legibility in dark environments.
+
+## Layout & Spacing
+
+The layout is built on a tight, structured industrial rack grid:
+
+- **Grid Architecture:** Desktop and production monitors utilize an explicit 12-column or 16-column modular panel structure. Modules sit flush or snap against a compact `0.75rem` (`12px`) gutter, minimizing wasted interface real estate and grouping controls into dense operational banks.
+- **Component Padding:** Padding within modular tiles follows an intentional, compact rhythm (`0.5rem` to `0.75rem`). Data density takes precedence over airy decorative margins.
+- **Reflow Logic:**
+  - **Desktop / Field Monitor (1024px+):** Multi-pane console layout with simultaneous display of Universe map, Stage preview, Master faders, and Parameter knobs.
+  - **Tablet (768px - 1023px):** Split-console view with persistent bottom master bank and collapsible channel strips.
+  - **Handheld / Mobile (<768px):** Single-column stacked deck with persistent sticky blackout/master intensity strip pinned to bottom.
+
+## Elevation & Depth
+
+This design system deliberately rejects soft blurs, float shadows, and pseudo-3D elevation. Depth is communicated strictly through surface brightness grading and precision borders:
+
+- **Surface Grading:**
+  - `Base Floor`: `#101114`
+  - `Recessed Trays & Sliders Track`: `#14161B`
+  - `Active Modules & Panels`: `#22252B`
+  - `Raised Control Heads & Modals`: `#2B2F38`
+- **Border Enclosures:** Every container, channel bank, and input frame is circumscribed by a 1px solid rule using `#343840`. Active focus shifts the border directly to `#E5A962` without changing container dimensions.
+- **Tonal Overlays:** In place of drop shadows, nested hierarchies leverage 1px inset borders (`inset 0 0 0 1px #343840`) to maintain mechanical rigidity.
+
+## Shapes
+
+The design system operates strictly at `roundedness: 0`.
+
+- **Corner Geometry:** `border-radius: 0px` across every element without exception—buttons, cards, fader caps, status indicators, badges, dropdowns, and modal dialogs.
+- **Mechanical Cutouts:** Clipped corners (45-degree chamfers via CSS clip-path, exactly 4px) are reserved strictly for production badges, fixture grouping tags, and live blackout buttons to evoke industrial sheet-metal bevels.
+- **Line Consistency:** Dividers and structural rails remain strictly 1px wide.
+
+## Components
+
+### Buttons & Trigger Actuators
+- **Primary Action (Arm/Trigger/Strobe):** Pure `#E5A962` background, `#101114` text, bold `Space Mono`, 0px radius. Hover state drops to `#D99B52`. Active/pressed state renders an inset 2px border `#101114`.
+- **Secondary / Panel Buttons:** `#22252B` background with 1px `#343840` border. Text in `#F3F0EA`. On hover, border shifts to `#E5A962`.
+- **Blackout (Grand Master Cut):** `#E56D6D` background, high-contrast `#101114` text, permanent warning state with cross-hatch corner indicators.
+
+### Slider Rails & Fader Strips
+- **Track:** 6px wide recessed channel (`#14161B`) with 1px border (`#343840`).
+- **Fill:** Solid `#E5A962` running from baseline to current position.
+- **Cap (Thumb):** Rectangular hardware block (24px wide × 12px high), `#F3F0EA` fill with a center milled notch (`#101114` 1px line). Snaps instantly without elastic physics.
+
+### Rotary Encoders (Kelvin / Tint / DMX Dial)
+- Rendered as segmented mechanical rings with hairline graduations. Active value displayed dead-center in `metric-display` (`Space Mono`). Dial arc illuminates with `#E5A962` trace.
+
+### Badges & Metadata Chips
+- Zero-radius micro-rectangles. Background `#191B20`, border 1px solid `#343840`. Text in `label-sm` (`Space Mono`). Status chips incorporate a 4px × 4px square status indicator dot (e.g., `#52C98A` for CRMX Link).
+
+### Checkboxes & Toggle Switches
+- **Toggle Switches:** Dual-state hardware lever emulation. Rectangular sliding block inside a rigid 1px bordered track. Off state is muted dark slate; On state fills lever block with `#E5A962`.
+- **Checkboxes:** Pure square boxes (14px × 14px), 1px border. Checked state displays a solid 6px × 6px filled square in `#E5A962`.
+
+### Input Fields & Parameter Steppers
+- Rectangular `#14161B` fields with 1px `#343840` border. Numerical readouts right-aligned in `Space Mono`. Increment/decrement buttons flank the input as hard-edged square caps.
+
+### Cards & Fixture Bay Modules
+- Composed of `#22252B` background and 1px `#343840` perimeter frame. Top header strip rendered in `#191B20` with fixture index (`#A4A8B1`), universe/address lock, and wireless signal strength bar. Body provides instant access to CCT, +/- Green tint, Dimmer, and Gel presets.
