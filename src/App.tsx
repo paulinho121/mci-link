@@ -7,8 +7,16 @@ import { StageVisualizer } from './components/StageVisualizer';
 import { CueStack } from './components/CueStack';
 import { FxEngine } from './components/FxEngine';
 import { DmxPatchBay } from './components/DmxPatchBay';
-import { Fixture, Cue, FxPreset } from './types/cine';
+import { PairingModal } from './components/PairingModal';
+import { FixtureControlScreen } from './components/control/FixtureControlScreen';
+import { Fixture, Cue, FxPreset, LinkStatus, LookPreset } from './types/cine';
 import { INITIAL_FIXTURES, GEL_PRESETS, INITIAL_CUES, INITIAL_FX } from './data/initialData';
+import { profileFor } from './data/fixtureProfiles';
+import { USER_SLOT_COUNT } from './data/lookPresets';
+import { DRIVERS } from './services/lightLink';
+import { sidus } from './services/sidus/client';
+import { FX_TO_SIDUS_EFFECT, sidusSender, translateEvent } from './services/sidus/driver';
+import { applyCurve, invertCurve } from './utils/color';
 import { sound } from './utils/soundEffects';
 
 export default function App() {
@@ -36,6 +44,128 @@ export default function App() {
       prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
     );
   }, []);
+
+  // Update several fixtures at once (group / all-fixtures control).
+  // CCT is clamped to what each fixture can physically reach.
+  const handleUpdateFixtures = useCallback((ids: string[], updates: Partial<Fixture>) => {
+    const idSet = new Set(ids);
+    setFixtures((prev) =>
+      prev.map((f) => {
+        if (!idSet.has(f.id)) return f;
+        const next = { ...f, ...updates };
+        if (updates.cct !== undefined) {
+          const p = profileFor(f);
+          next.cct = Math.min(p.cctMax, Math.max(p.cctMin, updates.cct));
+        }
+        return next;
+      })
+    );
+  }, []);
+
+  // Pairing & individual control
+  const [pairingOpen, setPairingOpen] = useState<boolean>(false);
+  const [controlOpen, setControlOpen] = useState<boolean>(false);
+  const [identify, setIdentify] = useState<{ id: string; on: boolean } | null>(null);
+  const [userPresets, setUserPresets] = useState<(LookPreset | null)[]>(
+    () => Array.from({ length: USER_SLOT_COUNT }, () => null)
+  );
+
+  const setLinkStatus = useCallback((id: string, status: LinkStatus) => {
+    setFixtures((prev) =>
+      prev.map((f) => (f.id === id && f.link ? { ...f, link: { ...f.link, status } } : f))
+    );
+  }, []);
+
+  const handlePaired = useCallback((paired: Fixture[]) => {
+    if (!paired.length) return;
+    sound.click();
+    setFixtures((prev) => [...prev, ...paired]);
+    setSelectedFixtureId(paired[0].id);
+    setPairingOpen(false);
+    setControlOpen(true);
+  }, []);
+
+  // amaran Desktop: mirror the socket state onto its fixtures, and apply
+  // changes made in amaran Desktop / on the light so the faders follow.
+  const grandMasterRef = useRef(100);
+  grandMasterRef.current = grandMaster;
+  useEffect(() => {
+    const offStatus = sidus.onStatus((s) => {
+      const status: LinkStatus = s === 'connected' ? 'connected' : s === 'connecting' ? 'connecting' : 'lost';
+      if (s === 'connected') sidusSender.resync();
+      setFixtures((prev) =>
+        prev.map((f) => (f.link?.transport === 'SIDUS' ? { ...f, link: { ...f.link, status } } : f))
+      );
+    });
+    const offEvent = sidus.onEvent((ev) => {
+      const change = translateEvent(ev);
+      if (!change) return;
+      setFixtures((prev) =>
+        prev.map((f) => {
+          if (f.link?.transport !== 'SIDUS' || f.link.deviceId !== change.nodeId) return f;
+          const next = { ...f, ...change.updates };
+          if (change.outputLevel !== undefined) {
+            // Device reports final output; undo grand master + curve to get the fader.
+            const gm = grandMasterRef.current / 100;
+            const t = gm > 0 ? Math.min(1, change.outputLevel / 100 / gm) : 0;
+            next.dimmer = Math.round(invertCurve(t, f.dimmingCurve) * 1000) / 10;
+          }
+          return next;
+        })
+      );
+    });
+    return () => {
+      offStatus();
+      offEvent();
+    };
+  }, []);
+
+  const handleUnpair = useCallback((id: string) => {
+    const fixture = fixtures.find((f) => f.id === id);
+    if (fixture?.link) DRIVERS[fixture.link.transport].disconnect(fixture.link.deviceId);
+    const remaining = fixtures.filter((f) => f.id !== id);
+    setFixtures(remaining);
+    if (!remaining.length) setControlOpen(false);
+    if (selectedFixtureId === id && remaining.length) setSelectedFixtureId(remaining[0].id);
+  }, [fixtures, selectedFixtureId]);
+
+  const handleReconnect = useCallback(async (id: string) => {
+    const fixture = fixtures.find((f) => f.id === id);
+    if (!fixture?.link) return;
+    const { transport, deviceId, deviceName, nodeAddress, crmxChannel, firmware } = fixture.link;
+    setLinkStatus(id, 'connecting');
+    try {
+      await DRIVERS[transport].connect({
+        deviceId, deviceName, nodeAddress, crmxChannel, transport,
+        model: fixture.type, rssi: fixture.rssi, firmware: firmware ?? '',
+      });
+      setLinkStatus(id, 'connected');
+    } catch {
+      setLinkStatus(id, 'lost');
+    }
+  }, [fixtures, setLinkStatus]);
+
+  // Identify: blink the fixture at full for ~2s so it can be found on set
+  const handleIdentify = useCallback((id: string) => {
+    const fixture = fixtures.find((f) => f.id === id);
+    if (fixture?.link) DRIVERS[fixture.link.transport].identify(fixture.link.deviceId);
+    setIdentify({ id, on: true });
+  }, [fixtures]);
+
+  useEffect(() => {
+    if (!identify) return;
+    let ticks = 0;
+    const timer = window.setInterval(() => {
+      ticks += 1;
+      if (ticks >= 8) {
+        setIdentify(null);
+      } else {
+        setIdentify((cur) => (cur ? { ...cur, on: !cur.on } : cur));
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identify?.id]);
 
   // Update FX preset parameters
   const handleUpdateFxPreset = useCallback((id: string, updates: Partial<FxPreset>) => {
@@ -216,6 +346,8 @@ export default function App() {
       setFixtures((prev) =>
         prev.map((f) => {
           if (!f.activeFxId) return f;
+          // amaran fixtures run supported effects on the light itself
+          if (f.link?.transport === 'SIDUS' && f.capabilities?.effects.includes(FX_TO_SIDUS_EFFECT[f.activeFxId])) return f;
           const fx = fxList.find((x) => x.id === f.activeFxId);
           if (!fx) return f;
 
@@ -282,7 +414,12 @@ export default function App() {
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        pairingOpen ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
         return;
       }
 
@@ -336,7 +473,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCueId, cues, handleApplyCue]);
+  }, [activeCueId, cues, handleApplyCue, pairingOpen]);
 
   // Calculate solos
   const soloCount = fixtures.filter((f) => f.solo).length;
@@ -352,10 +489,39 @@ export default function App() {
     }
     // Grand master scale
     effectiveDim = (effectiveDim * (grandMaster / 100));
+    // Identify blink overrides everything except blackout
+    if (identify?.id === f.id) {
+      return { ...f, power: true, muted: false, dimmer: identify.on ? 100 : 0 };
+    }
     return { ...f, dimmer: effectiveDim };
   });
 
+  // Final level sent to the device (0-100)
+  // Final level sent to the device (0-100), shaped by the fixture's dimming curve
+  const outputLevelOf = (f: Fixture) =>
+    blackout || f.muted || !f.power ? 0 : applyCurve(f.dimmer / 100, f.dimmingCurve) * 100;
+
+  // Push output to every linked fixture (drivers are simulated for now)
+  useEffect(() => {
+    effectiveFixtures.forEach((f) => {
+      if (f.link?.status === 'connected') DRIVERS[f.link.transport].send(f, outputLevelOf(f));
+    });
+  });
+
+  const outputLevels = Object.fromEntries(effectiveFixtures.map((f) => [f.id, outputLevelOf(f)]));
   const selectedFixture = effectiveFixtures.find((f) => f.id === selectedFixtureId) || effectiveFixtures[0];
+
+  const emptyRig = (
+    <div className="h-full flex flex-col items-center justify-center space-y-3 text-[#A4A8B1] font-mono text-xs">
+      <span>NO LIGHTS IN THE RIG</span>
+      <button
+        onClick={() => { sound.click(); setPairingOpen(true); }}
+        className="px-3 py-1.5 bg-[#E5A962] text-[#101114] font-black tracking-widest"
+      >
+        + PAIR LIGHT
+      </button>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#101114] text-[#F3F0EA] overflow-hidden select-none font-mono">
@@ -378,10 +544,14 @@ export default function App() {
             onSoloToggle={handleSoloToggle}
             onMuteToggle={handleMuteToggle}
             blackoutActive={blackout}
+            onOpenPairing={() => setPairingOpen(true)}
+            onOpenDetail={(id) => { setSelectedFixtureId(id); setControlOpen(true); }}
           />
         )}
 
-        {activeTab === 'stage' && (
+        {(activeTab === 'stage' || activeTab === 'rotary') && fixtures.length === 0 && emptyRig}
+
+        {activeTab === 'stage' && fixtures.length > 0 && (
           <StageVisualizer
             fixtures={effectiveFixtures}
             selectedFixtureId={selectedFixtureId}
@@ -391,7 +561,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'rotary' && (
+        {activeTab === 'rotary' && fixtures.length > 0 && (
           <RotaryEncoderStation
             fixtures={effectiveFixtures}
             selectedFixture={selectedFixture}
@@ -447,6 +617,37 @@ export default function App() {
         onClearSolos={handleClearSolos}
         soloCount={soloCount}
       />
+
+      {controlOpen && fixtures.length > 0 && (
+        <FixtureControlScreen
+          fixtures={fixtures}
+          outputLevels={outputLevels}
+          selectedFixtureId={selectedFixtureId}
+          onSelectFixture={setSelectedFixtureId}
+          onUpdateFixtures={handleUpdateFixtures}
+          fxList={fxList}
+          onUpdateFxPreset={handleUpdateFxPreset}
+          gels={GEL_PRESETS}
+          identifyingId={identify?.id ?? null}
+          onIdentify={handleIdentify}
+          onReconnect={handleReconnect}
+          onUnpair={handleUnpair}
+          onOpenPairing={() => setPairingOpen(true)}
+          userPresets={userPresets}
+          onSaveUserPreset={(slot, preset) =>
+            setUserPresets((prev) => prev.map((p, i) => (i === slot ? preset : p)))
+          }
+          onClose={() => setControlOpen(false)}
+        />
+      )}
+
+      {pairingOpen && (
+        <PairingModal
+          fixtures={fixtures}
+          onClose={() => setPairingOpen(false)}
+          onPaired={handlePaired}
+        />
+      )}
     </div>
   );
 }

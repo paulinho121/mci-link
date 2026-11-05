@@ -26,6 +26,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 1,
     solo: false,
     muted: false,
+    link: { transport: 'CRMX', status: 'connected', deviceId: 'crmx-s60c-01', deviceName: 'S60-C · CRMX RX', crmxChannel: 18, firmware: '4.6.0', pairedAt: 0 },
   },
   {
     id: 'fix-2',
@@ -52,6 +53,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 1,
     solo: false,
     muted: false,
+    link: { transport: 'ARTNET', status: 'connected', deviceId: 'rdm-vortex8-01', deviceName: 'Vortex8 (RDM)', nodeAddress: '192.168.1.150', firmware: '2.1.4', pairedAt: 0 },
   },
   {
     id: 'fix-3',
@@ -78,6 +80,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 1,
     solo: false,
     muted: false,
+    link: { transport: 'ARTNET', status: 'connected', deviceId: 'rdm-gemini-01', deviceName: 'Gemini 2x1 (RDM)', nodeAddress: '192.168.1.150', firmware: '3.0.2', pairedAt: 0 },
   },
   {
     id: 'fix-4',
@@ -105,6 +108,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 2,
     solo: false,
     muted: false,
+    link: { transport: 'CRMX', status: 'connected', deviceId: 'crmx-titan-01', deviceName: 'Titan Tube · CRMX RX', crmxChannel: 18, firmware: '12.4', pairedAt: 0 },
   },
   {
     id: 'fix-5',
@@ -133,6 +137,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 2,
     solo: false,
     muted: false,
+    link: { transport: 'CRMX', status: 'connected', deviceId: 'crmx-titan-02', deviceName: 'Titan Tube · CRMX RX', crmxChannel: 18, firmware: '12.4', pairedAt: 0 },
   },
   {
     id: 'fix-6',
@@ -159,6 +164,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 3,
     solo: false,
     muted: false,
+    link: { transport: 'ARTNET', status: 'connected', deviceId: 'rdm-orbiter-01', deviceName: 'Orbiter (RDM)', nodeAddress: '192.168.1.150', firmware: '4.2.1', pairedAt: 0 },
   },
   {
     id: 'fix-7',
@@ -185,6 +191,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 3,
     solo: false,
     muted: false,
+    link: { transport: 'CRMX', status: 'connected', deviceId: 'crmx-600d-01', deviceName: '600d Pro · CRMX RX', crmxChannel: 18, firmware: '4.1.0', pairedAt: 0 },
   },
   {
     id: 'fix-8',
@@ -211,6 +218,7 @@ export const INITIAL_FIXTURES: Fixture[] = [
     group: 3,
     solo: false,
     muted: false,
+    link: { transport: 'SACN', status: 'connected', deviceId: 'rdm-evoke-01', deviceName: 'Evoke 1200 (RDM)', nodeAddress: '239.255.0.3', firmware: '1.6.0', pairedAt: 0 },
   },
 ];
 

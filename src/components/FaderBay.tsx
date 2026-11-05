@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import { Fixture, GelPreset } from '../types/cine';
 import { kelvinToRgb } from '../utils/kelvinToRgb';
 import { sound } from '../utils/soundEffects';
-import { Power, Zap, Wifi, Battery, Layers } from 'lucide-react';
+import { Power, Zap, Wifi, Plus, SlidersHorizontal } from 'lucide-react';
+import { TRANSPORT_LABELS } from '../services/lightLink';
 
 interface FaderBayProps {
   fixtures: Fixture[];
@@ -13,6 +14,8 @@ interface FaderBayProps {
   onSoloToggle: (id: string) => void;
   onMuteToggle: (id: string) => void;
   blackoutActive: boolean;
+  onOpenPairing: () => void;
+  onOpenDetail: (id: string) => void;
 }
 
 export const FaderBay: React.FC<FaderBayProps> = ({
@@ -23,6 +26,8 @@ export const FaderBay: React.FC<FaderBayProps> = ({
   onSoloToggle,
   onMuteToggle,
   blackoutActive,
+  onOpenPairing,
+  onOpenDetail,
 }) => {
   const [activeGroupFilter, setActiveGroupFilter] = useState<number | null>(null);
 
@@ -70,14 +75,30 @@ export const FaderBay: React.FC<FaderBayProps> = ({
           </div>
           <div className="flex items-center space-x-1">
             <span className="w-2 h-2 bg-[#E5A962] inline-block" />
-            <span>AVG DIM: {Math.round(fixtures.reduce((a, b) => a + b.dimmer, 0) / fixtures.length)}%</span>
+            <span>AVG DIM: {fixtures.length ? Math.round(fixtures.reduce((a, b) => a + b.dimmer, 0) / fixtures.length) : 0}%</span>
           </div>
+          <button
+            onClick={() => { sound.click(); onOpenPairing(); }}
+            className="flex items-center space-x-1 px-2.5 py-1 bg-[#E5A962] text-[#101114] border border-[#E5A962] font-black hover:bg-[#F0BC7A]"
+          >
+            <Plus className="w-3 h-3" />
+            <span>PAIR LIGHT</span>
+          </button>
         </div>
       </div>
 
       {/* Fixture Channel Strips Grid */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
         <div className="flex space-x-2.5 h-full min-w-max">
+          {filteredFixtures.length === 0 && (
+            <button
+              onClick={() => { sound.click(); onOpenPairing(); }}
+              className="w-72 h-full flex flex-col items-center justify-center space-y-2 border border-dashed border-[#343840] text-[#A4A8B1] hover:border-[#E5A962] hover:text-[#E5A962]"
+            >
+              <Plus className="w-6 h-6" />
+              <span className="font-mono font-bold text-xs tracking-widest">NO LIGHTS · PAIR ONE</span>
+            </button>
+          )}
           {filteredFixtures.map((fixture) => (
             <FixtureChannelStrip
               key={fixture.id}
@@ -87,6 +108,7 @@ export const FaderBay: React.FC<FaderBayProps> = ({
               onUpdate={(updates) => onUpdateFixture(fixture.id, updates)}
               onSolo={() => onSoloToggle(fixture.id)}
               onMute={() => onMuteToggle(fixture.id)}
+              onOpenDetail={() => onOpenDetail(fixture.id)}
               blackoutActive={blackoutActive}
             />
           ))}
@@ -103,6 +125,7 @@ interface FixtureChannelStripProps {
   onUpdate: (updates: Partial<Fixture>) => void;
   onSolo: () => void;
   onMute: () => void;
+  onOpenDetail: () => void;
   blackoutActive: boolean;
 }
 
@@ -113,6 +136,7 @@ const FixtureChannelStrip: React.FC<FixtureChannelStripProps> = ({
   onUpdate,
   onSolo,
   onMute,
+  onOpenDetail,
   blackoutActive,
 }) => {
   const faderRailRef = useRef<HTMLDivElement>(null);
@@ -147,10 +171,12 @@ const FixtureChannelStrip: React.FC<FixtureChannelStripProps> = ({
           <span className="text-[11px] font-mono font-black text-[#E5A962] tracking-wider">
             {fixture.tag}
           </span>
-          <div className="flex items-center space-x-1">
-            <Wifi className="w-2.5 h-2.5 text-[#52C98A]" />
-            <span className="text-[9px] font-mono text-[#52C98A]">{fixture.rssi}dB</span>
-          </div>
+          {fixture.link?.transport !== 'SIDUS' && (
+            <div className="flex items-center space-x-1">
+              <Wifi className="w-2.5 h-2.5 text-[#52C98A]" />
+              <span className="text-[9px] font-mono text-[#52C98A]">{fixture.rssi}dB</span>
+            </div>
+          )}
         </div>
 
         <div className="text-[10px] font-heading font-semibold text-[#F3F0EA] truncate" title={fixture.name}>
@@ -158,7 +184,23 @@ const FixtureChannelStrip: React.FC<FixtureChannelStripProps> = ({
         </div>
 
         <div className="flex items-center justify-between text-[9px] font-mono text-[#A4A8B1]">
-          <span>U{fixture.universe}:{fixture.startAddress}</span>
+          <div className="flex items-center space-x-1">
+            {fixture.link && (
+              <span
+                title={`${fixture.link.deviceName} · ${fixture.link.status}`}
+                className={`px-1 text-[8px] font-mono font-bold border whitespace-nowrap ${
+                  fixture.link.status === 'connected'
+                    ? 'text-[#52C98A] border-[#52C98A]/50'
+                    : fixture.link.status === 'connecting'
+                      ? 'text-[#E6B45F] border-[#E6B45F]/50 animate-pulse'
+                      : 'text-[#E56D6D] border-[#E56D6D]/50'
+                }`}
+              >
+                {TRANSPORT_LABELS[fixture.link.transport]}
+              </span>
+            )}
+            {fixture.link?.transport !== 'BLE' && <span>U{fixture.universe}:{fixture.startAddress}</span>}
+          </div>
           <span className="px-1 bg-[#101114] border border-[#343840]">GRP {fixture.group}</span>
         </div>
       </div>
@@ -320,6 +362,18 @@ const FixtureChannelStrip: React.FC<FixtureChannelStripProps> = ({
             <span>{fixture.power ? 'ON' : 'OFF'}</span>
           </button>
         </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            sound.click();
+            onOpenDetail();
+          }}
+          className="py-1 flex items-center justify-center space-x-1 bg-[#22252B] border border-[#343840] text-[#F3F0EA] text-[9px] font-bold hover:border-[#E5A962] hover:text-[#E5A962]"
+        >
+          <SlidersHorizontal className="w-2.5 h-2.5" />
+          <span>CONTROL</span>
+        </button>
       </div>
     </div>
   );

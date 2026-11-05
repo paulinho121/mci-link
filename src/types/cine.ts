@@ -6,7 +6,60 @@ export type FixtureType =
   | 'ARRI Orbiter'
   | 'Litepanels Gemini 2x1'
   | 'Nanlux Evoke 1200'
-  | 'Kino Flo Celeb 450Q';
+  | 'Kino Flo Celeb 450Q'
+  // Aputure / Amaran (first brand targeted for real pairing)
+  | 'Aputure 1200d Pro'
+  | 'Aputure Nova P300c'
+  | 'Aputure LS 300x'
+  | 'Aputure MC Pro'
+  | 'Amaran 200x S'
+  | 'Amaran 300c'
+  | 'Amaran F22c'
+  // Imported from amaran Desktop when the name doesn't match a known model
+  | 'Sidus Fixture';
+
+export type DimmingCurve = 'LINEAR' | 'EXPONENTIAL' | 'LOGARITHMIC' | 'S_CURVE';
+
+/** A stored look that can be recalled onto one or many fixtures. */
+export interface LookPreset {
+  id: string;
+  label: string;
+  swatch: string;
+  values: Partial<Pick<Fixture, 'dimmer' | 'cct' | 'tint' | 'colorMode' | 'hue' | 'saturation' | 'xy' | 'gelName' | 'activeFxId'>>;
+}
+
+/** How a fixture is physically linked to the app. */
+/** SIDUS = amaran Desktop official OpenAPI (WebSocket on the PC running the app). */
+export type LinkTransport = 'SIDUS' | 'BLE' | 'ARTNET' | 'SACN' | 'CRMX';
+
+/** Capabilities reported by the device itself (overrides the model profile). */
+export interface FixtureCapabilities {
+  cctMin: number;
+  cctMax: number;
+  supportsTint: boolean;
+  gmMin: number;
+  gmMax: number;
+  hsi: boolean;
+  rgb: boolean;
+  effects: string[];
+}
+
+export type LinkStatus = 'connected' | 'connecting' | 'lost';
+
+export interface FixtureLink {
+  transport: LinkTransport;
+  status: LinkStatus;
+  /** BLE device id, or the fixture's RDM/serial id on a DMX network. */
+  deviceId: string;
+  /** Name the device advertises (BLE) or the node/receiver label (DMX). */
+  deviceName: string;
+  /** Art-Net / sACN node IP address. */
+  nodeAddress?: string;
+  /** CRMX TX channel / link group. */
+  crmxChannel?: number;
+  firmware?: string;
+  pairedAt: number;
+}
 
 export interface Fixture {
   id: string;
@@ -22,7 +75,10 @@ export interface Fixture {
   dimmer: number; // 0.0 - 100.0%
   cct: number; // 2000K - 10000K
   tint: number; // -1.00 (Magenta) to +1.00 (Green)
-  colorMode: 'CCT' | 'HSI' | 'GEL' | 'FX';
+  colorMode: 'CCT' | 'HSI' | 'XY' | 'GEL' | 'FX';
+  /** CIE 1931 chromaticity target, used when colorMode is 'XY'. */
+  xy?: { x: number; y: number };
+  dimmingCurve?: DimmingCurve;
   
   // Color data for HSI/GEL
   hue: number; // 0 - 360
@@ -48,6 +104,10 @@ export interface Fixture {
   
   // Active FX assignment
   activeFxId?: string;
+
+  // Pairing / output link. Undefined = patched in the rig but not linked.
+  link?: FixtureLink;
+  capabilities?: FixtureCapabilities;
 }
 
 export interface GelPreset {
