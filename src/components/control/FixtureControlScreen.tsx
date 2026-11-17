@@ -566,7 +566,7 @@ export const FixtureControlScreen: React.FC<FixtureControlScreenProps> = ({
   );
 
   const frame = encodeDmx(lead, outputLevels[lead.id] ?? 0);
-  const isDmx = lead.link && lead.link.transport !== 'BLE';
+  const isDmx = lead.link && lead.link.transport !== 'BLE' && lead.link.transport !== 'SIDUS';
 
   const controls = (
     <div className="flex flex-col h-full min-h-0">
@@ -609,7 +609,7 @@ export const FixtureControlScreen: React.FC<FixtureControlScreenProps> = ({
         <span className="whitespace-nowrap">
           OUT <span className="text-[#E5A962] font-bold">{(outputLevels[lead.id] ?? 0).toFixed(1)}%</span>
         </span>
-        <span className="whitespace-nowrap">{isDmx ? `U${lead.universe}:${lead.startAddress} · ${profile.dmxMode.name}` : lead.link ? TRANSPORT_LABELS[lead.link.transport] : 'NOT LINKED'}</span>
+        <span className="whitespace-nowrap">{isDmx ? `${lead.link?.transport === 'TIMO' ? `BT CH${lead.startAddress}` : `U${lead.universe}:${lead.startAddress}`} · ${profile.dmxMode.name}` : lead.link ? TRANSPORT_LABELS[lead.link.transport] : 'NOT LINKED'}</span>
         <span className="flex space-x-1">
           {profile.dmxMode.channels.map((ch, i) => (
             <span key={ch} className="px-1 bg-[#101114] border border-[#343840] whitespace-nowrap" title={ch}>

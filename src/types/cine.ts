@@ -16,7 +16,8 @@ export type FixtureType =
   | 'Amaran 300c'
   | 'Amaran F22c'
   // Imported from amaran Desktop when the name doesn't match a known model
-  | 'Sidus Fixture';
+  | 'Sidus Fixture'
+  | 'Creamsource Vortex4';
 
 export type DimmingCurve = 'LINEAR' | 'EXPONENTIAL' | 'LOGARITHMIC' | 'S_CURVE';
 
@@ -30,7 +31,8 @@ export interface LookPreset {
 
 /** How a fixture is physically linked to the app. */
 /** SIDUS = amaran Desktop official OpenAPI (WebSocket on the PC running the app). */
-export type LinkTransport = 'SIDUS' | 'BLE' | 'ARTNET' | 'SACN' | 'CRMX';
+/** TIMO = DMX over Bluetooth to a LumenRadio TimoTwo module (e.g. Creamsource Vortex). */
+export type LinkTransport = 'SIDUS' | 'BLE' | 'TIMO' | 'ARTNET' | 'SACN' | 'CRMX';
 
 /** Capabilities reported by the device itself (overrides the model profile). */
 export interface FixtureCapabilities {

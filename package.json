@@ -5,13 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev:https": "vite --mode https --port=3443 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "mock:amaran": "node scripts/mock-amaran-desktop.mjs"
+    "mock:amaran": "node scripts/mock-amaran-desktop.mjs",
+    "ble:export-mesh": "node --no-warnings scripts/export-amaran-mesh.mjs",
+    "test:ble": "tsx scripts/test-ble-mesh.ts && tsx scripts/test-timo.ts"
   },
   "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.3.0",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
     "@google/genai": "^2.4.0",
     "@noble/ciphers": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -25,11 +32,13 @@
     "vite": "^8.3.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.2",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.27.0",
     "tailwindcss": "^4.3.3",

@@ -199,7 +199,11 @@ const FixtureChannelStrip: React.FC<FixtureChannelStripProps> = ({
                 {TRANSPORT_LABELS[fixture.link.transport]}
               </span>
             )}
-            {fixture.link?.transport !== 'BLE' && <span>U{fixture.universe}:{fixture.startAddress}</span>}
+            {fixture.link?.transport === 'TIMO' ? (
+              <span>CH{fixture.startAddress}</span>
+            ) : (
+              fixture.link?.transport !== 'BLE' && <span>U{fixture.universe}:{fixture.startAddress}</span>
+            )}
           </div>
           <span className="px-1 bg-[#101114] border border-[#343840]">GRP {fixture.group}</span>
         </div>

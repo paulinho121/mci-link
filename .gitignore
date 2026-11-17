@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Mesh keys exported from amaran Desktop (secret)
+*.local.json

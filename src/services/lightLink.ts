@@ -1,17 +1,20 @@
 import { Fixture, FixtureCapabilities, FixtureType, LinkTransport } from '../types/cine';
 import { FIXTURE_PROFILES, profileFor, DmxChannelFn } from '../data/fixtureProfiles';
 import { sidus } from './sidus/client';
-import { desiredState, listSidusFixtures, sidusSender } from './sidus/driver';
+import { desiredState, guessModel, listSidusFixtures, sidusSender } from './sidus/driver';
+import { bleCommandFor, bleMesh, bleMeshSender, meshAddressOf, meshDeviceId } from './ble/meshLink';
+import { timo } from './timo/timoLink';
 import { D65, rgbToHueSat, xyToRgb } from '../utils/color';
 
 /**
  * Light link layer.
  *
  * Every transport implements the same `LightLinkDriver` contract so the UI
- * never cares how a fixture is reached. Today all drivers are SIMULATED.
- * Real drivers plug in here later:
- *  - BLE:    Web Bluetooth (Chrome/Edge only). Aputure/Amaran use the
- *            proprietary Sidus Link protocol, which needs vendor docs/SDK.
+ * never cares how a fixture is reached. Real drivers:
+ *  - SIDUS:  amaran Desktop official OpenAPI (services/sidus).
+ *  - BLE:    direct Bluetooth Mesh via Web Bluetooth (services/ble),
+ *            reverse engineered.
+ * Still SIMULATED:
  *  - ARTNET / SACN: browsers cannot send UDP, so a small local bridge
  *            (Node/Express + WebSocket) will receive frames and send them.
  *  - CRMX:   a LumenRadio TX fed by Art-Net/sACN, so it reuses that bridge.
@@ -50,13 +53,13 @@ export interface LightLinkDriver {
 export const TRANSPORT_LABELS: Record<LinkTransport, string> = {
   SIDUS: 'AMARAN',
   BLE: 'BLE',
+  TIMO: 'CRMX BT',
   ARTNET: 'ART-NET',
   SACN: 'sACN',
   CRMX: 'CRMX',
 };
 
-export const isWebBluetoothAvailable = (): boolean =>
-  typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+export { bleAvailable as isWebBluetoothAvailable } from './ble/transport';
 
 const wait = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
@@ -67,18 +70,10 @@ const wait = (ms: number, signal?: AbortSignal) =>
     });
   });
 
-type SimTransport = Exclude<LinkTransport, 'SIDUS'>;
+type SimTransport = Exclude<LinkTransport, 'SIDUS' | 'BLE' | 'TIMO'>;
 
 // Simulated devices "in the room", per transport.
 const SIMULATED_DEVICES: Record<SimTransport, Omit<DiscoveredDevice, 'transport'>[]> = {
-  BLE: [
-    { deviceId: 'ble-a1f3', model: 'Aputure Nova P300c', deviceName: 'NOVA P300c-A1F3', rssi: -48, firmware: '1.4.2' },
-    { deviceId: 'ble-77c0', model: 'Amaran 200x S', deviceName: 'amaran 200x S-77C0', rssi: -55, firmware: '2.0.1' },
-    { deviceId: 'ble-0b9e', model: 'Aputure MC Pro', deviceName: 'MC Pro-0B9E', rssi: -61, firmware: '1.1.0', battery: 82 },
-    { deviceId: 'ble-0b9f', model: 'Aputure MC Pro', deviceName: 'MC Pro-0B9F', rssi: -63, firmware: '1.1.0', battery: 64 },
-    { deviceId: 'ble-5d21', model: 'Amaran 300c', deviceName: 'amaran 300c-5D21', rssi: -70, firmware: '1.3.5' },
-    { deviceId: 'ble-e402', model: 'Amaran F22c', deviceName: 'amaran F22c-E402', rssi: -74, firmware: '1.0.8' },
-  ],
   ARTNET: [
     { deviceId: 'rdm-1200d-01', model: 'Aputure 1200d Pro', deviceName: '1200d Pro (RDM 0x41500012)', rssi: -40, firmware: '3.2.0', nodeAddress: '192.168.1.150', universe: 2, startAddress: 33 },
     { deviceId: 'rdm-ls300x-01', model: 'Aputure LS 300x', deviceName: 'LS 300x (RDM 0x41500233)', rssi: -40, firmware: '2.5.1', nodeAddress: '192.168.1.150', universe: 2, startAddress: 41 },
@@ -93,7 +88,6 @@ const SIMULATED_DEVICES: Record<SimTransport, Omit<DiscoveredDevice, 'transport'
 };
 
 const DESCRIPTIONS: Record<SimTransport, string> = {
-  BLE: 'Direct Bluetooth from this device (Sidus Link compatible fixtures).',
   ARTNET: 'Wi-Fi / Ethernet through an Art-Net node. Fixtures found via RDM.',
   SACN: 'Streaming ACN (E1.31) over the network. Fixtures found via RDM.',
   CRMX: 'LumenRadio wireless DMX through a TX fed by Art-Net / sACN.',
@@ -164,9 +158,96 @@ const sidusDriver: LightLinkDriver = {
   },
 };
 
+/**
+ * Real driver: direct Bluetooth Mesh. One light acts as proxy and relays to
+ * every light in the mesh; each fixture is addressed by its unicast address.
+ */
+const bleDriver: LightLinkDriver = {
+  transport: 'BLE',
+  label: 'BLUETOOTH',
+  description: 'Direct Bluetooth from this tablet or phone, no PC needed. Uses your Sidus mesh keys. Reverse engineered: a light firmware update can break it.',
+  simulated: false,
+  async discover(onFound, signal) {
+    if (bleMesh.status !== 'connected') throw new Error('Connect to a light over Bluetooth first');
+    for (const n of bleMesh.currentConfig?.nodes ?? []) {
+      if (signal.aborted) return;
+      onFound({
+        deviceId: meshDeviceId(n.address),
+        transport: 'BLE',
+        model: n.model ?? guessModel(n.name),
+        deviceName: n.name,
+        rssi: 0,
+        firmware: '',
+        nodeAddress: `0x${n.address.toString(16).padStart(4, '0').toUpperCase()}`,
+      });
+    }
+  },
+  async connect(device) {
+    if (bleMesh.status !== 'connected') await bleMesh.reconnect();
+    const addr = meshAddressOf(device.deviceId);
+    if (addr !== null) bleMeshSender.resync(addr);
+  },
+  async disconnect(deviceId) {
+    const addr = meshAddressOf(deviceId);
+    if (addr !== null) bleMeshSender.forget(addr);
+  },
+  async identify() {
+    // No known identify command; the app blinks the intensity instead.
+  },
+  send(fixture, outputLevel) {
+    const addr = fixture.link ? meshAddressOf(fixture.link.deviceId) : null;
+    if (addr !== null) bleMeshSender.queue(addr, bleCommandFor(fixture, outputLevel));
+  },
+};
+
+/** Best guess from the Bluetooth name ("Vortex4 …", sometimes just "TimoTwo"). */
+export function guessTimoModel(name: string): FixtureType {
+  return /vortexs*8/i.test(name) ? 'Creamsource Vortex8' : 'Creamsource Vortex4';
+}
+
+/**
+ * Real driver: DMX over Bluetooth to a LumenRadio TimoTwo module (official
+ * protocol). One connection per light; the fixture's DMX address and the
+ * light's DMX mode must match what is set on the light.
+ */
+const timoDriver: LightLinkDriver = {
+  transport: 'TIMO',
+  label: 'CRMX BLUETOOTH',
+  description: 'Creamsource Vortex and other lights with LumenRadio CRMX Bluetooth. Official LumenRadio protocol, one connection per light.',
+  simulated: false,
+  async discover(onFound, signal) {
+    // Opens the system / browser picker: must run straight from a tap.
+    const light = await timo.choose();
+    if (signal.aborted) return;
+    onFound({
+      deviceId: light.id,
+      transport: 'TIMO',
+      model: guessTimoModel(light.name),
+      deviceName: light.name,
+      rssi: 0,
+      firmware: '',
+      startAddress: 1,
+    });
+  },
+  async connect(device) {
+    await timo.reconnect(device.deviceId);
+  },
+  async disconnect(deviceId) {
+    timo.disconnect(deviceId);
+  },
+  async identify() {
+    // The app blinks the intensity.
+  },
+  send(fixture, outputLevel) {
+    const light = fixture.link ? timo.get(fixture.link.deviceId) : undefined;
+    if (light) light.set(fixture.startAddress || 1, encodeDmx(fixture, outputLevel));
+  },
+};
+
 export const DRIVERS: Record<LinkTransport, LightLinkDriver> = {
   SIDUS: sidusDriver,
-  BLE: createSimulatedDriver('BLE'),
+  BLE: bleDriver,
+  TIMO: timoDriver,
   ARTNET: createSimulatedDriver('ARTNET'),
   SACN: createSimulatedDriver('SACN'),
   CRMX: createSimulatedDriver('CRMX'),
@@ -187,6 +268,7 @@ const to8 = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
  */
 export function encodeDmx(fixture: Fixture, outputLevel: number): number[] {
   const profile = profileFor(fixture);
+  if (profile.dmxMode.encode) return profile.dmxMode.encode(fixture, outputLevel);
   const level16 = Math.round((Math.max(0, Math.min(100, outputLevel)) / 100) * 65535);
   const cctSpan = Math.max(1, profile.cctMax - profile.cctMin);
   // Provisional maps have no xy channels: send xy targets as hue/sat.
@@ -202,6 +284,14 @@ export function encodeDmx(fixture: Fixture, outputLevel: number): number[] {
     HUE: to8((color.hue / 360) * 255),
     SAT: to8(color.saturation * 2.55),
     FX: fixture.activeFxId ? to8((FX_INDEX[fixture.activeFxId] ?? 0) * 10) : 0,
+    CCT_FINE: 0,
+    GM_FINE: 0,
+    XFADE: 0,
+    XFADE_FINE: 0,
+    HUE_FINE: 0,
+    SAT_FINE: 0,
+    FAN: 0,
+    CONTROL: 0,
   };
   return profile.dmxMode.channels.map((ch) => values[ch]);
 }

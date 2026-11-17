@@ -15,6 +15,8 @@ import { profileFor } from './data/fixtureProfiles';
 import { USER_SLOT_COUNT } from './data/lookPresets';
 import { DRIVERS } from './services/lightLink';
 import { sidus } from './services/sidus/client';
+import { bleMesh, bleMeshSender } from './services/ble/meshLink';
+import { timo } from './services/timo/timoLink';
 import { FX_TO_SIDUS_EFFECT, sidusSender, translateEvent } from './services/sidus/driver';
 import { applyCurve, invertCurve } from './utils/color';
 import { sound } from './utils/soundEffects';
@@ -114,9 +116,27 @@ export default function App() {
         })
       );
     });
+    // Direct Bluetooth: one proxy link serves every BLE fixture.
+    const offBle = bleMesh.onStatus((s) => {
+      const status: LinkStatus = s === 'connected' ? 'connected' : s === 'connecting' ? 'connecting' : 'lost';
+      if (s === 'connected') bleMeshSender.resync();
+      setFixtures((prev) =>
+        prev.map((f) => (f.link?.transport === 'BLE' && f.link.status !== status ? { ...f, link: { ...f.link, status } } : f))
+      );
+    });
+    // CRMX Bluetooth: one link per light.
+    const offTimo = timo.onStatus((deviceId, s) => {
+      setFixtures((prev) =>
+        prev.map((f) =>
+          f.link?.transport === 'TIMO' && f.link.deviceId === deviceId && f.link.status !== s ? { ...f, link: { ...f.link, status: s } } : f
+        )
+      );
+    });
     return () => {
       offStatus();
       offEvent();
+      offBle();
+      offTimo();
     };
   }, []);
 

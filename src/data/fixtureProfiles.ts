@@ -1,4 +1,5 @@
 import { Fixture, FixtureType, LinkTransport } from '../types/cine';
+import { VORTEX_MODE_8 } from './vortexDmx';
 
 /**
  * Per-model capabilities used by pairing and the individual control panel.
@@ -17,11 +18,21 @@ export type DmxChannelFn =
   | 'GM'
   | 'HUE'
   | 'SAT'
-  | 'FX';
+  | 'FX'
+  | 'CCT_FINE'
+  | 'GM_FINE'
+  | 'XFADE'
+  | 'XFADE_FINE'
+  | 'HUE_FINE'
+  | 'SAT_FINE'
+  | 'FAN'
+  | 'CONTROL';
 
 export interface DmxMode {
   name: string;
   channels: DmxChannelFn[];
+  /** Exact encoder from the manufacturer's DMX table (overrides the generic one). */
+  encode?: (fixture: Fixture, outputLevel: number) => number[];
 }
 
 export interface FixtureProfile {
@@ -62,7 +73,9 @@ export const FIXTURE_PROFILES: Record<FixtureType, FixtureProfile> = {
   // --- Existing demo rig ---
   'ARRI SkyPanel S60-C': { model: 'ARRI SkyPanel S60-C', brand: 'ARRI', capability: 'FULL_COLOR', cctMin: 2800, cctMax: 10000, supportsTint: true, transports: DMX_LINKS, dmxMode: MODE_FULL },
   'ARRI Orbiter': { model: 'ARRI Orbiter', brand: 'ARRI', capability: 'FULL_COLOR', cctMin: 2000, cctMax: 10000, supportsTint: true, transports: DMX_LINKS, dmxMode: MODE_FULL },
-  'Creamsource Vortex8': { model: 'Creamsource Vortex8', brand: 'Creamsource', capability: 'FULL_COLOR', cctMin: 2000, cctMax: 10000, supportsTint: true, transports: DMX_LINKS, dmxMode: MODE_FULL },
+  // Creamsource: values from the official Vortex DMX Tables V3.1 (Mode 8).
+  'Creamsource Vortex8': { model: 'Creamsource Vortex8', brand: 'Creamsource', capability: 'FULL_COLOR', cctMin: 2200, cctMax: 15000, supportsTint: true, transports: ['TIMO', 'SACN', 'CRMX'], dmxMode: VORTEX_MODE_8 },
+  'Creamsource Vortex4': { model: 'Creamsource Vortex4', brand: 'Creamsource', capability: 'FULL_COLOR', cctMin: 2200, cctMax: 15000, supportsTint: true, transports: ['TIMO', 'SACN', 'CRMX'], dmxMode: VORTEX_MODE_8 },
   'Astera Titan Tube': { model: 'Astera Titan Tube', brand: 'Astera', capability: 'FULL_COLOR', cctMin: 2000, cctMax: 10000, supportsTint: true, transports: DMX_LINKS, dmxMode: MODE_FULL, battery: true },
   'Litepanels Gemini 2x1': { model: 'Litepanels Gemini 2x1', brand: 'Litepanels', capability: 'FULL_COLOR', cctMin: 2200, cctMax: 10000, supportsTint: true, transports: DMX_LINKS, dmxMode: MODE_FULL },
   'Nanlux Evoke 1200': { model: 'Nanlux Evoke 1200', brand: 'Nanlux', capability: 'BICOLOR', cctMin: 2700, cctMax: 6500, supportsTint: true, transports: DMX_LINKS, dmxMode: MODE_BICOLOR },

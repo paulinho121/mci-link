@@ -1,0 +1,19 @@
+{
+  "appId": "com.hubstudio.cinelight",
+  "appName": "Cine Light OS",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "BluetoothLe": {
+      "displayStrings": {
+        "scanning": "Searching for lights…",
+        "cancel": "Cancel",
+        "availableDevices": "Lights nearby",
+        "noDeviceFound": "No light found"
+      }
+    }
+  }
+}

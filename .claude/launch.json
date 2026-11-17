@@ -6,6 +6,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "mci-link-https",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:https"],
+      "port": 3443,
+      "url": "https://localhost:3443"
     }
   ]
 }
