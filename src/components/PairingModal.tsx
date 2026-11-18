@@ -475,6 +475,14 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
           {/* Step 1b: amaran Desktop connection */}
           {step === 'sidus-connect' && (
             <div className="flex flex-col space-y-4">
+              {typeof window !== 'undefined' &&
+                window.location.protocol === 'https:' &&
+                !['localhost', '127.0.0.1'].includes(window.location.hostname) && (
+                  <div className="text-xs font-mono text-[#E56D6D] leading-snug">
+                    This page is online (https), and browsers block it from reaching amaran Desktop on your network. Use
+                    Bluetooth instead, or open Cine Light OS on the PC (npm run dev) or in the native app.
+                  </div>
+                )}
               <div className="text-[11px] text-[#A4A8B1] leading-snug">
                 Open <span className="text-[#F3F0EA]">amaran Desktop</span> on the PC where your lights are paired. Use
                 <span className="font-mono text-[#F3F0EA]"> 127.0.0.1</span> if it runs on this computer, or that PC&apos;s IP

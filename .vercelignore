@@ -1,0 +1,5 @@
+# Not needed to build the web app
+android
+ios
+docs
+*.local.json
