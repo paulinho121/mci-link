@@ -64,3 +64,27 @@ only after that.
 
 Code: `src/services/timo/timoLink.ts` (Bluetooth), `src/data/vortexDmx.ts`
 (Mode 8 encoder).
+
+## Aputure LS 600d Pro (same CRMX Bluetooth path)
+
+The LS 600d Pro also has a LumenRadio TimoTwo chip (Aputure: "LumenRadio
+CRMX TimoTwo chipset"). Aputure does not document Bluetooth on that chip, so
+it may or may not answer; if it does, the same path works.
+
+- On the light: **Menu → Control System → LumenRadio → ON** (only one
+  control mode at a time), and **Menu → DMX Mode → DMX Address 1**.
+- In the app: **PAIR LIGHT → CRMX BLUETOOTH → SHOW ALL DEVICES**, choose it
+  (it may show as "TimoTwo"), set **MODEL → Aputure 600d Pro**.
+- Channels: Aputure's official 5-channel table (`src/data/aputureDmx.ts`):
+  1 dimmer, 2 mode (sent as Manual), 3-5 FX (sent as 0). Console effects
+  move the dimmer.
+
+Other ways to reach a 600d Pro from this app:
+
+- **Bluetooth (Sidus Mesh):** if it is in your Sidus account, it is in the
+  mesh file (`npm run ble:export-mesh`) and works over **PAIR LIGHT →
+  BLUETOOTH**.
+- **amaran Desktop** (official API), if you have the Sidus key.
+- **2.4G remote:** Aputure's own RF remote (2.4 GHz FSK, channels 1-3,
+  groups A-D). Phones and PCs have no 2.4G FSK radio, so the app cannot use
+  it.

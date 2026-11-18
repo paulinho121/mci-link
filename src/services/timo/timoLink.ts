@@ -21,7 +21,7 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 export const TIMO_DMX_SERVICE = 'bfa00000-247d-6e1c-448c-223dfa0bd00c';
 export const TIMO_DMX_CHAR = 'bfa00001-247d-6e1c-448c-223dfa0bd00c';
 
-const NAME_PREFIXES = ['Vortex', 'VORTEX', 'vortex', 'TimoTwo', 'Creamsource', 'CS-'];
+const NAME_PREFIXES = ['Vortex', 'VORTEX', 'vortex', 'TimoTwo', 'Creamsource', 'CS-', 'LS 600', 'LS600', 'Aputure', 'APUTURE'];
 const MAX_SLOTS_PER_CHANGE = 127; // 7-bit count
 const FLUSH_DELAY_MS = 25;
 const RETRY_MS = 3000;
@@ -141,13 +141,17 @@ interface WebDevice extends EventTarget {
   };
 }
 
-async function pickWeb(): Promise<Picked> {
+async function pickWeb(showAll = false): Promise<Picked> {
   const bt = (navigator as unknown as { bluetooth?: { requestDevice(o: unknown): Promise<WebDevice> } }).bluetooth;
   if (!bt) throw new Error('Bluetooth is not available in this browser.');
-  const device = await bt.requestDevice({
-    filters: [{ services: [TIMO_DMX_SERVICE] }, ...NAME_PREFIXES.map((namePrefix) => ({ namePrefix }))],
-    optionalServices: [TIMO_DMX_SERVICE],
-  });
+  const device = await bt.requestDevice(
+    showAll
+      ? { acceptAllDevices: true, optionalServices: [TIMO_DMX_SERVICE] }
+      : {
+          filters: [{ services: [TIMO_DMX_SERVICE] }, ...NAME_PREFIXES.map((namePrefix) => ({ namePrefix }))],
+          optionalServices: [TIMO_DMX_SERVICE],
+        },
+  );
   let onDrop: (() => void) | null = null;
   device.addEventListener('gattserverdisconnected', () => onDrop?.());
   return {
@@ -357,8 +361,13 @@ class TimoManager {
    * yet: the link opens when the light is paired, so it is not left idle
    * (and dropped) while the patch form is filled in.
    */
+  /** Next picker lists every Bluetooth device (set right before choose()). */
+  showAllNext = false;
+
   async choose(): Promise<TimoLight> {
-    const picked = await (isNative() ? pickNative() : pickWeb());
+    const showAll = this.showAllNext;
+    this.showAllNext = false;
+    const picked = await (isNative() ? pickNative() : pickWeb(showAll));
     const existing = this.lights.get(picked.id);
     if (existing) return existing;
     const light = new TimoLight(picked, this.emit);

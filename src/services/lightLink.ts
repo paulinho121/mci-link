@@ -202,7 +202,8 @@ const bleDriver: LightLinkDriver = {
 
 /** Best guess from the Bluetooth name ("Vortex4 …", sometimes just "TimoTwo"). */
 export function guessTimoModel(name: string): FixtureType {
-  return /vortexs*8/i.test(name) ? 'Creamsource Vortex8' : 'Creamsource Vortex4';
+  if (/600\s*d/i.test(name)) return 'Aputure 600d Pro';
+  return /vortex\s*8/i.test(name) ? 'Creamsource Vortex8' : 'Creamsource Vortex4';
 }
 
 /**
@@ -213,7 +214,7 @@ export function guessTimoModel(name: string): FixtureType {
 const timoDriver: LightLinkDriver = {
   transport: 'TIMO',
   label: 'CRMX BLUETOOTH',
-  description: 'Creamsource Vortex and other lights with LumenRadio CRMX Bluetooth. Official LumenRadio protocol, one connection per light.',
+  description: 'Lights with a LumenRadio TimoTwo inside: Creamsource Vortex, Aputure 600d Pro and others. Official LumenRadio protocol, one connection per light.',
   simulated: false,
   async discover(onFound, signal) {
     // Opens the system / browser picker: must run straight from a tap.

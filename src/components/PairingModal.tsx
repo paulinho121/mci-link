@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Fixture, LinkTransport } from '../types/cine';
-import { getProfile } from '../data/fixtureProfiles';
+import { FIXTURE_PROFILES, getProfile } from '../data/fixtureProfiles';
 import { DRIVERS, DiscoveredDevice, isWebBluetoothAvailable } from '../services/lightLink';
 import { timo } from '../services/timo/timoLink';
 import { SIDUS_DEFAULT_PORT, checkSecretKey, sidus } from '../services/sidus/client';
@@ -605,14 +605,21 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
           {step === 'timo-connect' && (
             <div className="flex flex-col space-y-4">
               <div className="text-[11px] text-[#A4A8B1] leading-snug">
-                For <span className="text-[#F3F0EA]">Creamsource Vortex</span> and other lights with LumenRadio CRMX
-                Bluetooth. Each light has its own Bluetooth link. Set this on the light first:
+                For lights with a <span className="text-[#F3F0EA]">LumenRadio TimoTwo</span> inside. Each light has its own
+                Bluetooth link. Set this on the light first:
               </div>
+              <div className="text-[10px] font-mono font-bold text-[#E5A962]">CREAMSOURCE VORTEX</div>
               <ol className="text-[11px] font-mono text-[#F3F0EA] space-y-1.5 list-decimal pl-5">
                 <li>LINK → CRMX Settings → turn on <span className="text-[#E5A962]">CRMX</span> and <span className="text-[#E5A962]">CRMX BLE</span>.</li>
                 <li>LINK → DMX Settings → DMX Mode <span className="text-[#E5A962]">8</span> (16-bit CCT &amp; Hue/Sat).</li>
                 <li>LINK → DMX Settings → DMX Address <span className="text-[#E5A962]">1</span> (or note the one you use).</li>
                 <li>Optional: DMX Smoothing → Smooth, to hide Bluetooth steps.</li>
+              </ol>
+              <div className="text-[10px] font-mono font-bold text-[#E5A962]">APUTURE LS 600d PRO</div>
+              <ol className="text-[11px] font-mono text-[#F3F0EA] space-y-1.5 list-decimal pl-5">
+                <li>Menu → Control System → <span className="text-[#E5A962]">LumenRadio</span> → ON (only one control mode at a time).</li>
+                <li>Menu → DMX Mode → DMX Address <span className="text-[#E5A962]">1</span>.</li>
+                <li>Aputure does not document Bluetooth on its LumenRadio chip: if the light is not in the list, try SHOW ALL DEVICES.</li>
               </ol>
               <div className="text-[11px] text-[#A4A8B1] leading-snug">
                 Close Luminair, Slyyd and CRMX Toolbox on other devices: the light takes one Bluetooth app at a time. If it
@@ -689,7 +696,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
                             : d.transport === 'BLE'
                               ? `${d.model === 'Sidus Fixture' ? 'MODEL NOT RECOGNISED' : d.model} · ADDR ${d.nodeAddress} · VIA ${bleMesh.proxyName || 'BLUETOOTH'}`
                               : d.transport === 'TIMO'
-                                ? `${d.model} · READY · DMX MODE 8`
+                                ? `${d.model} · READY · ${getProfile(d.model).dmxMode.name}`
                                 : `${d.deviceName} · FW ${d.firmware}`}
                           {!isListSource(d.transport) && d.nodeAddress && ` · NODE ${d.nodeAddress}`}
                           {d.crmxChannel !== undefined && ` · CRMX CH-${d.crmxChannel}`}
@@ -759,6 +766,18 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
 
                 {device.transport === 'TIMO' && (
                   <label className="flex flex-col space-y-1 col-span-2">
+                    <span className="text-[10px] font-mono text-[#A4A8B1] tracking-widest">MODEL</span>
+                    <select
+                      value={device.model}
+                      onChange={(e) => setDevice({ ...device, model: e.target.value as DiscoveredDevice['model'] })}
+                      className={`${inputCls} mb-2`}
+                    >
+                      {Object.values(FIXTURE_PROFILES)
+                        .filter((p) => p.transports.includes('TIMO'))
+                        .map((p) => (
+                          <option key={p.model} value={p.model}>{p.model}</option>
+                        ))}
+                    </select>
                     <span className="text-[10px] font-mono text-[#A4A8B1] tracking-widest">
                       DMX ADDRESS ON THE LIGHT ({getProfile(device.model).dmxMode.channels.length} CH)
                     </span>
@@ -844,6 +863,18 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
 
         {step === 'timo-connect' && (
           <div className="px-4 py-3 border-t border-[#343840] bg-[#14161B] flex justify-end">
+            <button
+              onClick={() => {
+                sound.click();
+                timo.showAllNext = true;
+                setStep('scan');
+                startScan('TIMO');
+              }}
+              disabled={!isWebBluetoothAvailable()}
+              className="mr-2 px-3 py-2 border border-[#343840] text-[#F3F0EA] font-mono text-[10px] tracking-widest hover:border-[#E5A962] disabled:opacity-50"
+            >
+              SHOW ALL DEVICES
+            </button>
             <button
               onClick={() => {
                 sound.click();

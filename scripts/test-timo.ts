@@ -7,6 +7,7 @@
  */
 import { diffRanges, encodeChange, packWrites } from '../src/services/timo/timoLink.ts';
 import { encodeVortexMode8, vortexGm16 } from '../src/data/vortexDmx.ts';
+import { encodeAputure600dPro } from '../src/data/aputureDmx.ts';
 import type { Fixture } from '../src/types/cine.ts';
 
 let failed = 0;
@@ -55,6 +56,10 @@ eq('Mode 8 CCT 15000K half', hex(encodeVortexMode8({ ...base, cct: 15000 } as Fi
 const hsi = encodeVortexMode8({ ...base, colorMode: 'HSI', hue: 360, saturation: 100 } as Fixture, 100);
 eq('Mode 8 HSI crossfade/hue/sat', hex(hsi.slice(6, 12)), 'ffffffffffff');
 eq('Mode 8 length', hsi.length, 14);
+
+// Aputure 600d Pro official 5-channel table: dimmer, Manual mode, FX off
+eq('600d Pro full', hex(encodeAputure600dPro(base, 100)), 'ff00000000');
+eq('600d Pro half', hex(encodeAputure600dPro(base, 50)), '8000000000');
 
 console.log(failed ? `\n${failed} FAILED` : '\nALL PASSED');
 process.exit(failed ? 1 : 0);

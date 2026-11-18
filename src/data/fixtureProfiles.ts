@@ -1,5 +1,6 @@
 import { Fixture, FixtureType, LinkTransport } from '../types/cine';
 import { VORTEX_MODE_8 } from './vortexDmx';
+import { APUTURE_600D_PRO_MODE } from './aputureDmx';
 
 /**
  * Per-model capabilities used by pairing and the individual control panel.
@@ -59,7 +60,8 @@ const DMX_LINKS: LinkTransport[] = ['ARTNET', 'SACN', 'CRMX'];
 
 export const FIXTURE_PROFILES: Record<FixtureType, FixtureProfile> = {
   // --- Aputure / Amaran ---
-  'Aputure 600d Pro': { model: 'Aputure 600d Pro', brand: 'Aputure', capability: 'DAYLIGHT', cctMin: 5600, cctMax: 5600, supportsTint: false, transports: ALL_LINKS, dmxMode: MODE_DAYLIGHT },
+  // Official 5-channel DMX table; built-in LumenRadio TimoTwo (CRMX).
+  'Aputure 600d Pro': { model: 'Aputure 600d Pro', brand: 'Aputure', capability: 'DAYLIGHT', cctMin: 5600, cctMax: 5600, supportsTint: false, transports: [...ALL_LINKS, 'TIMO'], dmxMode: APUTURE_600D_PRO_MODE },
   'Aputure 1200d Pro': { model: 'Aputure 1200d Pro', brand: 'Aputure', capability: 'DAYLIGHT', cctMin: 5600, cctMax: 5600, supportsTint: false, transports: ALL_LINKS, dmxMode: MODE_DAYLIGHT },
   'Aputure Nova P300c': { model: 'Aputure Nova P300c', brand: 'Aputure', capability: 'FULL_COLOR', cctMin: 2300, cctMax: 10000, supportsTint: true, transports: ALL_LINKS, dmxMode: MODE_FULL },
   'Aputure LS 300x': { model: 'Aputure LS 300x', brand: 'Aputure', capability: 'BICOLOR', cctMin: 2700, cctMax: 6500, supportsTint: true, transports: ['BLE', 'ARTNET', 'SACN'], dmxMode: MODE_BICOLOR },
