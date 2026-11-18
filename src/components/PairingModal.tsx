@@ -291,7 +291,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
     }
   };
 
-  const connectBle = async () => {
+  const connectBle = async (showAll = false) => {
     sound.click();
     const cfg: BleMeshConfig = {
       netKey: netKey.replace(/[^0-9a-f]/gi, ''),
@@ -315,12 +315,16 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
       bleMesh.configure(cfg);
       saveMeshSettings(cfg, rememberMesh);
       // requestDevice must be the first await after the click.
-      await bleMesh.connect();
+      await bleMesh.connect(showAll);
       setStep('scan');
       startScan('BLE');
     } catch (e) {
       const ex = e as DOMException;
-      if (ex.name !== 'NotFoundError') setError(ex.message ?? String(e)); // NotFound = chooser cancelled
+      setError(
+        ex.name === 'NotFoundError' // picker closed without choosing
+          ? 'No light chosen. If your light was not in the list, try SHOW ALL DEVICES.'
+          : (ex.message ?? String(e)),
+      );
     } finally {
       setConnecting(false);
     }
@@ -858,7 +862,14 @@ export const PairingModal: React.FC<PairingModalProps> = ({ fixtures, onClose, o
         {step === 'ble-connect' && (
           <div className="px-4 py-3 border-t border-[#343840] bg-[#14161B] flex justify-end">
             <button
-              onClick={connectBle}
+              onClick={() => connectBle(true)}
+              disabled={connecting || !isWebBluetoothAvailable() || !netKey.trim() || !appKey.trim()}
+              className="mr-2 px-3 py-2 border border-[#343840] text-[#F3F0EA] font-mono text-[10px] tracking-widest hover:border-[#E5A962] disabled:opacity-50"
+            >
+              SHOW ALL DEVICES
+            </button>
+            <button
+              onClick={() => connectBle()}
               disabled={connecting || !isWebBluetoothAvailable() || !netKey.trim() || !appKey.trim()}
               className="flex items-center space-x-2 px-4 py-2 bg-[#E5A962] text-[#101114] font-mono font-black text-xs tracking-widest disabled:opacity-50"
             >

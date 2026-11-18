@@ -20,9 +20,10 @@ import { timo } from './services/timo/timoLink';
 import { FX_TO_SIDUS_EFFECT, sidusSender, translateEvent } from './services/sidus/driver';
 import { applyCurve, invertCurve } from './utils/color';
 import { sound } from './utils/soundEffects';
+import { CinematicLighting } from './cinematic/CinematicLighting';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx'>('faders');
+  const [activeTab, setActiveTab] = useState<'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx' | 'cinematic'>('faders');
   const [fixtures, setFixtures] = useState<Fixture[]>(INITIAL_FIXTURES);
   const [selectedFixtureId, setSelectedFixtureId] = useState<string>(INITIAL_FIXTURES[0].id);
   const [grandMaster, setGrandMaster] = useState<number>(100.0);
@@ -474,6 +475,11 @@ export default function App() {
           sound.click();
           setActiveTab('dmx');
           break;
+        case 'F7':
+          e.preventDefault();
+          sound.click();
+          setActiveTab('cinematic');
+          break;
         case ' ':
           // Spacebar: Blackout toggle
           e.preventDefault();
@@ -613,6 +619,10 @@ export default function App() {
             onUpdateFxPreset={handleUpdateFxPreset}
             onStopAllFx={handleStopAllFx}
           />
+        )}
+
+        {activeTab === 'cinematic' && (
+          <CinematicLighting fixtures={fixtures} setFixtures={setFixtures} onOpenPairing={() => setPairingOpen(true)} />
         )}
 
         {activeTab === 'dmx' && (

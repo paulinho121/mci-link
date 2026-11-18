@@ -11,13 +11,14 @@ import {
   Radio, 
   Cpu, 
   Activity,
-  Film
+  Film,
+  Clapperboard,
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 
 interface HeaderBarProps {
-  activeTab: 'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx';
-  setActiveTab: (tab: 'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx') => void;
+  activeTab: 'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx' | 'cinematic';
+  setActiveTab: (tab: 'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx' | 'cinematic') => void;
   blackoutActive: boolean;
 }
 
@@ -69,7 +70,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     if (sound.enabled) sound.click();
   };
 
-  const handleTabChange = (tab: 'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx') => {
+  const handleTabChange = (tab: 'faders' | 'stage' | 'rotary' | 'cues' | 'fx' | 'dmx' | 'cinematic') => {
     sound.click();
     setActiveTab(tab);
   };
@@ -167,6 +168,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             { id: 'cues', label: 'CUE STACK', icon: PlayCircle, shortcut: 'F4' },
             { id: 'fx', label: 'FX ENGINE', icon: Zap, shortcut: 'F5' },
             { id: 'dmx', label: 'DMX MATRIX', icon: Grid, shortcut: 'F6' },
+            { id: 'cinematic', label: 'CINEMATIC', icon: Clapperboard, shortcut: 'F7' },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;

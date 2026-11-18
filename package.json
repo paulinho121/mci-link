@@ -12,7 +12,9 @@
     "lint": "tsc --noEmit",
     "mock:amaran": "node scripts/mock-amaran-desktop.mjs",
     "ble:export-mesh": "node --no-warnings scripts/export-amaran-mesh.mjs",
-    "test:ble": "tsx scripts/test-ble-mesh.ts && tsx scripts/test-timo.ts"
+    "test:ble": "tsx scripts/test-ble-mesh.ts && tsx scripts/test-timo.ts",
+    "test:cinematic": "tsx scripts/test-cinematic.ts",
+    "test": "npm run test:ble && npm run test:cinematic"
   },
   "dependencies": {
     "@capacitor-community/bluetooth-le": "^8.3.0",

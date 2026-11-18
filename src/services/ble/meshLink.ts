@@ -190,6 +190,8 @@ export type BleMeshStatus = 'disconnected' | 'connecting' | 'connected' | 'error
 type Listener<T> = (v: T) => void;
 
 const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+/** Connection steps in the browser console, prefixed [mesh], for field debugging. */
+const log = (...args: unknown[]) => console.info('[mesh]', ...args);
 
 export class BleMeshSession {
   private handle: BleHandle | null = null;
@@ -246,9 +248,10 @@ export class BleMeshSession {
    * Opens the system / browser Bluetooth picker. Must run from a tap,
    * before any other await.
    */
-  async connect(): Promise<void> {
+  async connect(showAll = false): Promise<void> {
     if (!this.config) throw new Error('Load the mesh keys first');
-    const handle = await bleBackend().choose();
+    const handle = await bleBackend().choose(showAll);
+    log(`picked "${handle.name}" (${handle.id})`);
     if (this.handle && this.handle.id !== handle.id) this.disconnect();
     this.handle = handle;
     this.wantConnected = true;
@@ -295,12 +298,16 @@ export class BleMeshSession {
     this.lastError = null;
     this.setStatus('connecting');
     try {
+      log(`connecting to "${this.handle.name}"…`);
       this.link = await this.handle.open((d) => this.onNotify(d), this.onLinkDropped);
       this.segmented = this.link.maxWrite !== null && this.link.maxWrite < 30;
+      log(`GATT connected, mesh proxy service found, max write ${this.link.maxWrite ?? 'unknown'}`);
       await sleep(500);
       await this.setupFilter();
+      log(`ready: IV index ${this.config.ivIndex}, source 0x${this.config.src.toString(16)}, lights ${this.config.nodes.map((n) => n.address).join(', ')}`);
       this.setStatus('connected');
     } catch (e) {
+      console.warn('[mesh] connection failed:', e);
       this.link = null;
       this.lastError = (e as Error).message;
       this.setStatus('error');
@@ -314,12 +321,19 @@ export class BleMeshSession {
    */
   private async setupFilter() {
     const cfg = this.config!;
+    let acked = false;
     const ack = new Promise<void>((resolve) => {
-      this.filterAck = resolve;
+      this.filterAck = () => {
+        acked = true;
+        resolve();
+      };
       window.setTimeout(resolve, 2000);
     });
     await this.sendProxyConfig(0x00, [0x00]); // Set Filter Type: whitelist
     await ack;
+    log(acked
+      ? 'proxy filter accepted: the mesh keys are right'
+      : 'no answer to the proxy filter (wrong NetKey or IV index?) — continuing anyway');
     this.filterAck = null;
     const addrs = [cfg.src, ALL_NODES, DEFAULT_GROUP, ...cfg.nodes.map((n) => n.address)];
     const params: number[] = [];
@@ -417,10 +431,12 @@ export class BleMeshSession {
 
   private onProxyPdu(data: Uint8Array) {
     const type = data[0] & 0x3f;
+    log(`received proxy PDU type ${type}, ${data.length} bytes`);
     if (type === PROXY_TYPE.BEACON && data[1] === 0x01 && data.length >= 15 && this.config) {
       // Secure Network Beacon: learn the current IV index.
       const iv = ((data[11] << 24) | (data[12] << 16) | (data[13] << 8) | data[14]) >>> 0;
       const networkId = hex(data.subarray(3, 11));
+      log(`network beacon: IV index ${iv}`);
       if (iv !== this.config.ivIndex && networkId) {
         this.config = { ...this.config, ivIndex: iv };
         // IV changed: messages sent so far were ignored, so send again.

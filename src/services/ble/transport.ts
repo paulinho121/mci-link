@@ -11,13 +11,22 @@ import { BleClient } from '@capacitor-community/bluetooth-le';
 
 export const MESH_PROXY_SERVICE = '00001828-0000-1000-8000-00805f9b34fb';
 export const MESH_PROVISIONING_SERVICE = '00001827-0000-1000-8000-00805f9b34fb';
+/** Extra services we ask access to, only to report what a light exposes. */
+const DIAG_SERVICES = [
+  '0000180a-0000-1000-8000-00805f9b34fb', // Device Information
+  '00010203-0405-0607-0809-0a0b0c0d1910', // Telink proprietary mesh (older Sidus)
+  '00010203-0405-0607-0809-0a0b0c0d1912', // Telink OTA
+  '0000fff0-0000-1000-8000-00805f9b34fb',
+  '0000ffe0-0000-1000-8000-00805f9b34fb',
+];
+const ALL_OPTIONAL = [MESH_PROXY_SERVICE, MESH_PROVISIONING_SERVICE, ...DIAG_SERVICES];
 const PROXY_DATA_IN = '00002add-0000-1000-8000-00805f9b34fb';
 const PROXY_DATA_OUT = '00002ade-0000-1000-8000-00805f9b34fb';
 
 const NAME_PREFIXES = ['amaran', 'Amaran', 'AMARAN', 'Aputure', 'APUTURE', 'SLCK'];
 
 export const NOT_IN_MESH =
-  'This light is not in a mesh yet (factory state). Add it once with Sidus Link / amaran Desktop, then reload the mesh keys.';
+  'The light only shows its "new light" (provisioning) service, not the mesh one. If it is not in Sidus Link yet, add it there and reload the mesh keys. If it already is, Windows may be showing old cached services: remove the light in Windows Settings → Bluetooth & devices, then connect again.';
 export const NO_PROXY = 'This device has no Bluetooth Mesh proxy service.';
 
 export interface ProxyLink {
@@ -35,8 +44,12 @@ export interface BleHandle {
 
 export interface BleBackend {
   kind: 'native' | 'web';
-  /** Shows the system / browser picker. Call straight from a tap. */
-  choose(): Promise<BleHandle>;
+  /**
+   * Shows the system / browser picker. Call straight from a tap.
+   * `showAll` lists every Bluetooth device (no filter), for lights that
+   * advertise under an unexpected name.
+   */
+  choose(showAll?: boolean): Promise<BleHandle>;
 }
 
 export const isNativeApp = () => Capacitor.isNativePlatform();
@@ -49,10 +62,10 @@ const initNative = () => (nativeReady ??= BleClient.initialize({ androidNeverFor
 
 const nativeBackend: BleBackend = {
   kind: 'native',
-  async choose() {
+  async choose(showAll) {
     await initNative();
     const device = await BleClient.requestDevice({
-      services: [MESH_PROXY_SERVICE, MESH_PROVISIONING_SERVICE],
+      ...(showAll ? {} : { services: [MESH_PROXY_SERVICE, MESH_PROVISIONING_SERVICE] }),
       optionalServices: [MESH_PROXY_SERVICE, MESH_PROVISIONING_SERVICE],
     });
     const id = device.deviceId;
@@ -101,6 +114,7 @@ interface BtServer {
   connect(): Promise<BtServer>;
   disconnect(): void;
   getPrimaryService(uuid: string): Promise<BtService>;
+  getPrimaryServices(): Promise<{ uuid: string }[]>;
 }
 interface BtDevice extends EventTarget {
   id: string;
@@ -115,13 +129,17 @@ const webBluetooth = (): Bt | null =>
 
 const webBackend: BleBackend = {
   kind: 'web',
-  async choose() {
+  async choose(showAll) {
     const bt = webBluetooth();
     if (!bt) throw new Error('Web Bluetooth is not available in this browser.');
-    const device = await bt.requestDevice({
-      filters: [{ services: [MESH_PROXY_SERVICE] }, ...NAME_PREFIXES.map((namePrefix) => ({ namePrefix }))],
-      optionalServices: [MESH_PROXY_SERVICE, MESH_PROVISIONING_SERVICE],
-    });
+    const device = await bt.requestDevice(
+      showAll
+        ? { acceptAllDevices: true, optionalServices: ALL_OPTIONAL }
+        : {
+            filters: [{ services: [MESH_PROXY_SERVICE] }, ...NAME_PREFIXES.map((namePrefix) => ({ namePrefix }))],
+            optionalServices: ALL_OPTIONAL,
+          },
+    );
     let disconnectHandler: (() => void) | null = null;
     device.addEventListener('gattserverdisconnected', () => disconnectHandler?.());
     return {
@@ -132,17 +150,19 @@ const webBackend: BleBackend = {
         if (!gatt) throw new Error(NO_PROXY);
         disconnectHandler = onDisconnect;
         const server = await gatt.connect();
-        let service: BtService;
-        try {
-          service = await server.getPrimaryService(MESH_PROXY_SERVICE);
-        } catch {
-          let factory = false;
-          try {
-            await server.getPrimaryService(MESH_PROVISIONING_SERVICE);
-            factory = true;
-          } catch {
-            /* neither service */
-          }
+        const found = await server.getPrimaryServices().then(
+          (list) => list.map((x) => x.uuid),
+          () => [] as string[],
+        );
+        console.info('[mesh] services on', device.name ?? device.id, found);
+        let service: BtService | null = null;
+        // Some lights switch their GATT table just after connecting: ask again.
+        for (let attempt = 0; attempt < 3 && !service; attempt++) {
+          if (attempt) await new Promise((r) => setTimeout(r, 700));
+          service = await server.getPrimaryService(MESH_PROXY_SERVICE).catch(() => null);
+        }
+        if (!service) {
+          const factory = found.includes(MESH_PROVISIONING_SERVICE);
           disconnectHandler = null;
           server.disconnect();
           throw new Error(factory ? NOT_IN_MESH : NO_PROXY);
